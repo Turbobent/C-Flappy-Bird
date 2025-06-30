@@ -1,14 +1,34 @@
 #include <windows.h>
+#include <stdlib.h>
+#include <time.h>
 
 #define BIRD_WIDTH 30
 #define BIRD_HEIGHT 30
+#define PIPE_WIDTH 60
+#define PIPE_GAP 150
+#define PIPE_SPEED 5
+#define MAX_PIPES 3
+
+typedef struct {
+    int x;
+    int gapY;
+} Pipe;
+
+Pipe pipes[MAX_PIPES];
+int birdY = 200, velocity = 0;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    static int birdY = 100, velocity = 0;
+    static int frame = 0;
 
     switch (uMsg) {
         case WM_CREATE:
-            SetTimer(hwnd, 1, 16, NULL); // Start timer on create
+            SetTimer(hwnd, 1, 16, NULL); // 60 FPS
+            srand((unsigned int)time(NULL));
+            // Initialize pipes
+            for (int i = 0; i < MAX_PIPES; i++) {
+                pipes[i].x = 800 + i * 300;
+                pipes[i].gapY = 100 + rand() % 300;
+            }
             break;
 
         case WM_KEYDOWN:
@@ -21,24 +41,49 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             birdY += velocity;
             if (birdY < 0) birdY = 0;
             if (birdY > 570) birdY = 570;
-            InvalidateRect(hwnd, NULL, FALSE); // Request repaint
+
+            // Move pipes
+            for (int i = 0; i < MAX_PIPES; i++) {
+                pipes[i].x -= PIPE_SPEED;
+                if (pipes[i].x + PIPE_WIDTH < 0) {
+                    pipes[i].x = 800;
+                    pipes[i].gapY = 100 + rand() % 300;
+                }
+            }
+
+            InvalidateRect(hwnd, NULL, FALSE); // trigger paint
             break;
 
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
 
-            // Clear background
-            HBRUSH bgBrush = CreateSolidBrush(RGB(135, 206, 235)); // Sky blue
-            FillRect(hdc, &ps.rcPaint, bgBrush);
-            DeleteObject(bgBrush);
+            // Background
+            HBRUSH sky = CreateSolidBrush(RGB(135, 206, 235));
+            FillRect(hdc, &ps.rcPaint, sky);
+            DeleteObject(sky);
 
             // Draw bird
-            HBRUSH birdBrush = CreateSolidBrush(RGB(255, 255, 0)); // Yellow
+            HBRUSH birdBrush = CreateSolidBrush(RGB(255, 255, 0));
             SelectObject(hdc, birdBrush);
             Rectangle(hdc, 100, birdY, 100 + BIRD_WIDTH, birdY + BIRD_HEIGHT);
             DeleteObject(birdBrush);
 
+            // Draw pipes
+            HBRUSH pipeBrush = CreateSolidBrush(RGB(0, 200, 0));
+            SelectObject(hdc, pipeBrush);
+
+            for (int i = 0; i < MAX_PIPES; i++) {
+                int x = pipes[i].x;
+                int gapY = pipes[i].gapY;
+
+                // Top pipe
+                Rectangle(hdc, x, 0, x + PIPE_WIDTH, gapY);
+                // Bottom pipe
+                Rectangle(hdc, x, gapY + PIPE_GAP, x + PIPE_WIDTH, 600);
+            }
+
+            DeleteObject(pipeBrush);
             EndPaint(hwnd, &ps);
             break;
         }

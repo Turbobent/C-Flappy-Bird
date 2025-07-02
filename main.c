@@ -22,7 +22,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
     switch (uMsg) {
         case WM_CREATE:
-            SetTimer(hwnd, 1, 16, NULL); // 60 FPS
+            // 60 FPS
+            SetTimer(hwnd, 1, 16, NULL); 
             srand((unsigned int)time(NULL));
             // Initialize pipes
             for (int i = 0; i < MAX_PIPES; i++) {
@@ -36,23 +37,46 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 velocity = -10;
             break;
 
-        case WM_TIMER:
-            velocity += 1;
-            birdY += velocity;
-            if (birdY < 0) birdY = 0;
-            if (birdY > 570) birdY = 570;
+   case WM_TIMER:
+    velocity += 1;
+    birdY += velocity;
+    if (birdY < 0) birdY = 0;
+    if (birdY > 570) birdY = 570;
 
-            // Move pipes
-            for (int i = 0; i < MAX_PIPES; i++) {
-                pipes[i].x -= PIPE_SPEED;
-                if (pipes[i].x + PIPE_WIDTH < 0) {
-                    pipes[i].x = 800;
-                    pipes[i].gapY = 100 + rand() % 300;
-                }
+    // Move pipes
+    for (int i = 0; i < MAX_PIPES; i++) {
+        pipes[i].x -= PIPE_SPEED;
+        if (pipes[i].x + PIPE_WIDTH < 0) {
+            pipes[i].x = 800;
+            pipes[i].gapY = 100 + rand() % 300;
+        }
+    }
+
+    // Collision detection
+    for (int i = 0; i < MAX_PIPES; i++) {
+        int pipeX = pipes[i].x;
+        int pipeTop = pipes[i].gapY;
+        int pipeBottom = pipeTop + PIPE_GAP;
+
+        int birdLeft = 100;
+        int birdRight = 100 + BIRD_WIDTH;
+        int birdTop = birdY;
+        int birdBottom = birdY + BIRD_HEIGHT;
+
+        int pipeLeft = pipeX;
+        int pipeRight = pipeX + PIPE_WIDTH;
+
+        if (birdRight > pipeLeft && birdLeft < pipeRight) {
+            if (birdTop < pipeTop || birdBottom > pipeBottom) {
+                MessageBox(hwnd, "Game Over!", "Collision", MB_OK);
+                PostQuitMessage(0);
             }
+        }
+    }
 
-            InvalidateRect(hwnd, NULL, FALSE); // trigger paint
-            break;
+    InvalidateRect(hwnd, NULL, FALSE);
+    break;
+
 
         case WM_PAINT: {
             PAINTSTRUCT ps;

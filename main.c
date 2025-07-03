@@ -16,6 +16,7 @@ typedef struct {
 
 Pipe pipes[MAX_PIPES];
 int birdY = 200, velocity = 0;
+int isGameOver = 0;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     static int frame = 0;
@@ -38,6 +39,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             break;
 
    case WM_TIMER:
+    if (isGameOver) break;
+
     velocity += 1;
     birdY += velocity;
     if (birdY < 0) birdY = 0;
@@ -68,14 +71,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
         if (birdRight > pipeLeft && birdLeft < pipeRight) {
             if (birdTop < pipeTop || birdBottom > pipeBottom) {
-                MessageBox(hwnd, "Game Over!", "Collision", MB_OK);
-                PostQuitMessage(0);
+                isGameOver = 1;
+                KillTimer(hwnd, 1);
+                int result = MessageBox(hwnd, "Game Over! Try again?", "Collision", MB_YESNO | MB_ICONQUESTION);
+                if (result == IDYES) {
+                    // Reset game state
+                    birdY = 200;
+                    velocity = 0;
+                    for (int j = 0; j < MAX_PIPES; j++) {
+                        pipes[j].x = 800 + j * 300;
+                        pipes[j].gapY = 100 + rand() % 300;
+                    }
+                    isGameOver = 0;
+                    SetTimer(hwnd, 1, 16, NULL);
+                } else {
+                    PostQuitMessage(0);
+                }
+                break;
             }
         }
     }
 
     InvalidateRect(hwnd, NULL, FALSE);
     break;
+
 
 
         case WM_PAINT: {
